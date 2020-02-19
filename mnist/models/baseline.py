@@ -28,12 +28,13 @@ class MNISTBaseline(object):
             test_zs, test_ys, test_is = zip(*[(self.model.get_representation(x.to(self.device)).cpu(), y, i)
                                               for x, y, i in test_loader])
             probs = [self.model.classify(z.to(self.device)).cpu() for z in test_zs]
+            logits = [self.model.classify_logits(z.to(self.device)).cpu() for z in test_zs]
 
             test_zs = torch.cat(test_zs, dim=0)
             test_ys = torch.cat(test_ys, dim=0)
             test_is = torch.cat(test_is, dim=0)
             probs = torch.cat(probs, dim=0)
-
+            logits = torch.cat(logits, dim=0)
             total_loss = self.model.criterion(probs, test_ys)
             correct = torch.eq(probs.argmax(dim=1), test_ys).sum().item()
 
@@ -42,6 +43,7 @@ class MNISTBaseline(object):
                 'ys': test_ys,
                 'is': test_is,
                 'probs': probs,
+                'logits':logits,
                 'total_loss': total_loss,
                 'loss': total_loss.div(len(test_loader.sampler)),
                 'correct': correct,
@@ -89,6 +91,9 @@ class MNISTBaselineModule(nn.Module):
 
     def classify(self, z):
         probs = F.log_softmax(self.fc2(z), dim=1)
+        return probs
+    def classify_logits(self, z):
+        probs = self.fc2(z)
         return probs
 
     def forward(self, x, y):
